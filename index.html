@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>VC Estética Integral · Victoria Cravero · Sunchales</title>
+  <meta name="description" content="Estética integral en Sunchales: tratamientos faciales y corporales, depilación láser, masajes, manos y pies y nutrición. Reservá tu turno online.">
+  <meta name="theme-color" content="#f7f5f2">
+  <link rel="icon" href="img/monograma.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+  <header class="encabezado">
+    <div class="envoltura">
+      <a class="marca" href="#" aria-label="Inicio">
+        <img src="img/monograma.svg" alt="" width="40" height="40">
+        <span><b>VICTORIA CRAVERO</b><i>Estética Integral</i></span>
+      </a>
+      <nav class="nav">
+        <a class="solo-ancho" href="#servicios">Servicios</a>
+        <a class="solo-ancho" href="#donde">Dónde</a>
+        <a href="#/turno">Mi turno</a>
+        <a class="boton chico" href="#/reservar">Reservar</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="portada">
+      <div class="envoltura">
+        <div>
+          <p class="antetitulo">Belleza · cosmética · cuidado personal</p>
+          <h1>Promovemos tu bienestar, resaltamos tu belleza</h1>
+          <p class="lead">Junto a un gran equipo, en VC Estética Integral te acompañamos con tratamientos faciales y corporales, depilación láser, masajes, manos y pies y nutrición, en un lugar pensado para que te relajes.</p>
+          <div class="acciones">
+            <a class="boton" href="#/reservar">Reservar turno</a>
+            <a class="boton claro" href="#servicios">Ver servicios</a>
+          </div>
+        </div>
+        <div class="foto-portada">
+          <!-- Reemplazar por una foto del centro: img/portada.jpg -->
+          <img src="img/portada.jpg" alt="Gabinete de VC Estética Integral" onerror="this.remove()">
+          <div class="placeholder"><div><img src="img/monograma.svg" alt="" style="width:110px;margin:0 auto .8rem;opacity:.5">Foto del gabinete</div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="seccion blanca" id="servicios">
+      <div class="envoltura">
+        <div class="intro">
+          <h2>Servicios</h2>
+          <p class="suave">Elegí el tratamiento y reservá el día y horario que te quede cómodo. Si tenés dudas sobre cuál te conviene, escribinos.</p>
+        </div>
+        <div class="categorias" id="categorias" role="group" aria-label="Filtrar por categoría"></div>
+        <div class="servicios" id="lista-servicios"><p class="cargando">Cargando…</p></div>
+      </div>
+    </section>
+
+    <section class="seccion" id="equipo">
+      <div class="envoltura">
+        <div class="intro">
+          <h2>El equipo</h2>
+          <p class="suave">Cada profesional tiene su propia agenda: al reservar, tu turno queda con quien hace ese servicio.</p>
+        </div>
+        <div class="equipo" id="lista-equipo"></div>
+      </div>
+    </section>
+
+    <section class="seccion blanca" id="donde">
+      <div class="envoltura donde">
+        <div>
+          <h2>Dónde estamos</h2>
+          <p id="direccion" class="lead"></p>
+          <div class="acciones-col" style="max-width:340px">
+            <a class="boton claro" id="link-mapa" target="_blank" rel="noopener">Cómo llegar</a>
+            <a class="boton claro" id="link-ig" target="_blank" rel="noopener">Instagram</a>
+            <a class="boton wa" id="link-wa" target="_blank" rel="noopener">Escribinos por WhatsApp</a>
+          </div>
+        </div>
+        <div class="tarjeta">
+          <h3>Horarios de atención</h3>
+          <table class="tabla-horario" id="tabla-horario"></table>
+          <p class="chico suave" style="margin:1rem 0 0">Los horarios pueden variar según la profesional. En la reserva ves solo los turnos libres.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="pie">
+    <div class="envoltura">VC Estética Integral · Victoria Cravero, cosmiatra MP 0428/01 · Sunchales, Santa Fe</div>
+  </footer>
+
+  <a class="wa-flotante oculto" id="wa-flotante" target="_blank" rel="noopener" aria-label="WhatsApp">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.3-.4.7-1.4.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.4.1-.7.3-.2.3-.9.9-.9 2.2s.9 2.5 1 2.7c.1.2 1.8 2.8 4.4 3.9 1.6.7 2.3.8 3.1.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.1-1.2l-.6-.3Z"/></svg>
+  </a>
+
+  <div id="hoja"></div>
+
+  <script type="module" src="js/sitio.js"></script>
+</body>
+</html>

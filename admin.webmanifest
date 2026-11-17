@@ -1,0 +1,9 @@
+{
+  "name": "Agenda VC Estética Integral",
+  "short_name": "Agenda VC",
+  "start_url": "admin.html",
+  "display": "standalone",
+  "background_color": "#f7f5f2",
+  "theme_color": "#2e2c31",
+  "icons": [{ "src": "img/monograma.svg", "sizes": "any", "type": "image/svg+xml" }]
+}
