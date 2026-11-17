@@ -41,6 +41,7 @@ async function datosSupabase() {
     turnosPorCelular: (celular, nombre) => rpc('turnos_por_celular', { p_celular: celular, p_nombre: nombre }),
     cancelar: (codigo) => rpc('cancelar_turno', { p_codigo: codigo }),
     reprogramar: (codigo, inicio) => rpc('reprogramar_turno', { p_codigo: codigo, p_inicio: inicio }),
+    pedirCambio: (codigo, inicio) => rpc('pedir_cambio', { p_codigo: codigo, p_inicio: inicio }),
     anotarseEspera: (e) => rpc('anotarse_espera', { p_servicio: e.servicio_id, p_nombre: e.nombre, p_celular: e.celular, p_preferencia: e.preferencia || null }),
 
     // ---- panel

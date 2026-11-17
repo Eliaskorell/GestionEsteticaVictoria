@@ -284,6 +284,20 @@ async function miTurno(codigo) {
           pintar('<div class="ok">¡Listo! Tu turno quedó cambiado.</div>');
         } catch (er) { $('#err').innerHTML = `<div class="error">${esc(er.message)}</div>`; }
       },
+      alPedir: (iso) => {
+        $('#err').innerHTML = `<div class="aviso"><b>${fechaLarga(fechaDe(iso))}, ${horaDe(iso)} hs está ocupado.</b><br>¿Querés pedir ese horario? Te escribimos por WhatsApp para ver si se puede.
+          <div class="fila" style="margin-top:.7rem"><button class="boton chico" id="pedir-si">Pedir este horario</button><button class="boton claro chico" id="pedir-no">Elegir otro</button></div></div>`;
+        $('#err').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        $('#pedir-no').onclick = () => { $('#err').innerHTML = ''; };
+        $('#pedir-si').onclick = async () => {
+          $('#pedir-si').disabled = true;
+          try {
+            const r = await datos.pedirCambio(t.codigo, iso);
+            if (r === 'libre') { await datos.reprogramar(t.codigo, iso); Object.assign(t, await datos.turnoPorCodigo(t.codigo)); return pintar('<div class="ok">¡Listo! Tu turno quedó cambiado.</div>'); }
+            pintar('<div class="ok">¡Listo! Te escribimos por WhatsApp para ver si se puede hacer el cambio. Mientras tanto, tu turno sigue como estaba.</div>');
+          } catch (er) { $('#err').innerHTML = `<div class="error">${esc(er.message)}</div>`; }
+        };
+      },
     });
   };
   pintar();

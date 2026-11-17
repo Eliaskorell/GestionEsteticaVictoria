@@ -38,3 +38,15 @@ export function horasLibres({ fecha, servicio, horarios, ocupados, config, ahora
   }
   return [...new Set(libres)].sort((a, b) => a - b);
 }
+
+/**
+ * Horarios OCUPADOS por otra clienta que se pueden "pedir" (dentro del horario de atención y de los límites,
+ * pisados solo por turnos —no por bloqueos— y sin contar el turno propio).
+ */
+export function horasPedibles({ fecha, servicio, horarios, ocupados, config, ahora = new Date() }) {
+  const soloTurnos = ocupados.filter((o) => o.tipo !== 'bloqueo');
+  const bloqueos = ocupados.filter((o) => o.tipo === 'bloqueo');
+  const conTodo = horasLibres({ fecha, servicio, horarios, ocupados: bloqueos, config, ahora });
+  const libres = new Set(horasLibres({ fecha, servicio, horarios, ocupados: [...soloTurnos, ...bloqueos], config, ahora }));
+  return conTodo.filter((m) => !libres.has(m) && !(soloTurnos.length === 0));
+}

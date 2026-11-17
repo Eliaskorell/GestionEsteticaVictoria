@@ -459,7 +459,7 @@ async function vistaEspera(el = $('#vista')) {
 }
 
 // ---------------------------------------------------------------- novedades
-const ICONO_NOV = { reserva: '📅', cambio: '🔁', cancelacion: '✖️', espera: '⏳' };
+const ICONO_NOV = { reserva: '📅', cambio: '🔁', cancelacion: '✖️', espera: '⏳', pedido: '🙋' };
 function hace(iso) {
   const min = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
   if (min < 1) return 'recién';
@@ -471,13 +471,14 @@ async function vistaNovedades(el = $('#vista')) {
   const lista = await datos.novedades();
   el.innerHTML = `<p class="suave">Lo que hicieron las clientas desde la página: reservas, cambios, cancelaciones y anotadas en espera.</p>` +
     (lista.length ? lista.map((n) => `
-      <button class="novedad t-${esc(n.tipo)} ${n.vista ? '' : 'nueva'}" ${n.fecha_turno ? `data-fecha="${fechaDe(n.fecha_turno)}"` : `data-espera="1"`}>
+      <button class="novedad t-${esc(n.tipo)} ${n.vista ? '' : 'nueva'}" ${n.tipo === 'pedido' ? `data-pedido="${n.id}"` : n.fecha_turno ? `data-fecha="${fechaDe(n.fecha_turno)}"` : `data-espera="1"`}>
         <span class="ico" aria-hidden="true">${ICONO_NOV[n.tipo] || '•'}</span>
         <span><b>${esc(n.titulo)}</b>${esc(n.detalle || '')}<small>${hace(n.creado)}</small></span>
       </button>`).join('') : '<p class="vacio">Todavía no hay novedades.</p>');
   el.onclick = (e) => {
     const b = e.target.closest('.novedad');
     if (!b) return;
+    if (b.dataset.pedido) { hojaPedido(lista.find((n) => n.id === +b.dataset.pedido)); return; }
     if (b.dataset.fecha) { estado.fecha = b.dataset.fecha; estado.mes = null; location.hash = '#/agenda'; }
     else location.hash = '#/espera';
   };
@@ -485,6 +486,32 @@ async function vistaNovedades(el = $('#vista')) {
     await datos.marcarNovedadesVistas();
     $('.tabs a[href="#/novedades"] .globo')?.remove();
   }
+}
+
+function hojaPedido(n) {
+  const x = n.datos || {};
+  const pri = (nombre) => String(nombre || '').split(' ')[0];
+  const cuando = (iso) => iso ? `${fechaLarga(fechaDe(iso))} a las ${horaDe(iso)}` : '';
+  const cuerpo = abrirHoja('Pedido de cambio', `
+    <div class="resumen"><b>${esc(x.solicitante || '')}</b> · ${esc(x.solicitante_cel || '')}<br>
+      Quiere pasar <b>${esc(x.servicio || '')}</b><br>del ${cuando(x.desde)}<br>al <b>${cuando(x.hacia)}</b></div>
+    ${x.ocupante ? `<div class="resumen">Ese horario lo tiene <b>${esc(x.ocupante)}</b> · ${esc(x.ocupante_cel || '')}<br><span class="suave">${cuando(x.ocupante_inicio)}</span></div>` : '<div class="aviso">Ese horario ya se liberó: podés moverla desde la agenda.</div>'}
+    <div id="err"></div>
+    <div class="acciones-col">
+      <a class="boton wa" target="_blank" rel="noopener" href="${linkWA(celWA(x.solicitante_cel), `¡Hola ${pri(x.solicitante)}! Recibí tu pedido para pasar tu turno de ${x.servicio} al ${cuando(x.hacia)} hs. Me fijo si se puede y te aviso.`)}">WhatsApp a ${esc(pri(x.solicitante))} (pide el cambio)</a>
+      ${x.ocupante ? `<a class="boton wa" target="_blank" rel="noopener" href="${linkWA(celWA(x.ocupante_cel), `¡Hola ${pri(x.ocupante)}! ¿Te quedaría bien pasar tu turno del ${cuando(x.ocupante_inicio)} hs al ${cuando(x.desde)} hs? Así le hago lugar a otra clienta. ¡Gracias!`)}">WhatsApp a ${esc(pri(x.ocupante))} (tiene ese horario)</a>
+      <button class="boton claro" id="intercambiar-pedido">Intercambiar los dos turnos</button>` : ''}
+    </div>`);
+  $('#intercambiar-pedido', cuerpo)?.addEventListener('click', async () => {
+    try {
+      await datos.intercambiar(x.turno_id, x.ocupante_id);
+      cuerpo.innerHTML = `<div class="ok">¡Intercambiados! ${esc(pri(x.solicitante))} pasó al ${cuando(x.ocupante_inicio)} y ${esc(pri(x.ocupante))} al ${cuando(x.desde)}.</div>
+        <div class="acciones-col">
+          <a class="boton wa" target="_blank" rel="noopener" href="${linkWA(celWA(x.solicitante_cel), `¡Hola ${pri(x.solicitante)}! Listo, te pasé el turno al ${cuando(x.ocupante_inicio)} hs. ¡Te espero!`)}">Avisar a ${esc(pri(x.solicitante))}</a>
+          <a class="boton wa" target="_blank" rel="noopener" href="${linkWA(celWA(x.ocupante_cel), `¡Hola ${pri(x.ocupante)}! Gracias por cambiar: tu turno quedó el ${cuando(x.desde)} hs. ¡Te espero!`)}">Avisar a ${esc(pri(x.ocupante))}</a>
+        </div>`;
+    } catch (er) { $('#err', cuerpo).innerHTML = `<div class="error">${esc(er.message)}</div>`; }
+  });
 }
 
 // ---------------------------------------------------------------- recordatorios

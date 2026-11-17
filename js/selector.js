@@ -1,5 +1,5 @@
 // Selector de día y hora (lo usan la reserva, "mi turno" y el panel)
-import { horasLibres } from './disponibilidad.js';
+import { horasLibres, horasPedibles } from './disponibilidad.js';
 import { aISO, hoy, sumarDias, DIAS_CORTO, fechaLarga, hhmm, diaSemana } from './tiempo.js';
 
 export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -22,9 +22,10 @@ export async function selectorHorario(el, o) {
   for (let i = 0; i <= total; i++) {
     const fecha = sumarDias(desde, i);
     const libres = horasLibres({ fecha, servicio, horarios: pub.horarios, ocupados, config: pub.config, ignorarLimites: o.ignorarLimites });
-    dias.push({ fecha, libres });
+    const pedibles = o.alPedir ? horasPedibles({ fecha, servicio, horarios: pub.horarios, ocupados, config: pub.config }) : [];
+    dias.push({ fecha, libres, pedibles });
   }
-  const conLugar = dias.filter((d) => d.libres.length);
+  const conLugar = dias.filter((d) => d.libres.length || d.pedibles.length);
   if (!conLugar.length) {
     el.innerHTML = '<div class="aviso">No quedan horarios libres para este servicio en los próximos días.</div>';
     o.sinLugar?.();
@@ -38,14 +39,17 @@ export async function selectorHorario(el, o) {
       <div class="dias" role="group" aria-label="Día">
         ${dias.map((x) => {
           const [, , dd] = x.fecha.split('-');
-          return `<button type="button" class="dia" data-fecha="${x.fecha}" aria-pressed="${x.fecha === elegido}" ${x.libres.length ? '' : 'disabled'}>
+          return `<button type="button" class="dia" data-fecha="${x.fecha}" aria-pressed="${x.fecha === elegido}" ${x.libres.length || x.pedibles.length ? '' : 'disabled'}>
             <small>${DIAS_CORTO[diaSemana(x.fecha)]}</small><b>${+dd}</b><small>${x.libres.length ? x.libres.length + ' lib.' : '—'}</small></button>`;
         }).join('')}
       </div>
       <p><b>${fechaLarga(elegido)}</b></p>
       <div class="horas" role="group" aria-label="Hora">
-        ${d.libres.map((m) => `<button type="button" class="hora" data-min="${m}">${hhmm(m)}</button>`).join('')}
-      </div>`;
+        ${[...d.libres.map((m) => [m, false]), ...d.pedibles.map((m) => [m, true])].sort((a, b) => a[0] - b[0]).map(([m, ocupada]) =>
+          ocupada ? `<button type="button" class="hora pedible" data-min="${m}" data-pedir="1" title="Ocupado: podés pedirlo">${hhmm(m)}<small>ocupado</small></button>`
+                  : `<button type="button" class="hora" data-min="${m}">${hhmm(m)}</button>`).join('')}
+      </div>
+      ${d.pedibles.length ? '<p class="chico suave">Los horarios rayados están ocupados: podés pedirlos y te escriben para ver si se puede.</p>' : ''}`;
     el.querySelector(`[data-fecha="${elegido}"]`)?.scrollIntoView({ block: 'nearest', inline: 'center' });
   };
   pintar();
@@ -55,7 +59,8 @@ export async function selectorHorario(el, o) {
     const hora = ev.target.closest('.hora');
     if (hora) {
       el.querySelectorAll('.hora').forEach((b) => b.setAttribute('aria-pressed', b === hora));
-      o.alElegir(aISO(elegido, +hora.dataset.min));
+      if (hora.dataset.pedir) o.alPedir(aISO(elegido, +hora.dataset.min));
+      else o.alElegir(aISO(elegido, +hora.dataset.min));
     }
   };
 }

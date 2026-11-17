@@ -162,3 +162,6 @@ input:focus, select:focus, textarea:focus, .boton:focus-visible, .chip:focus-vis
 
 /* Si la foto cargó, se oculta el reemplazo */
 .foto-portada img ~ .placeholder { display: none; }
+
+.hora.pedible { background: repeating-linear-gradient(135deg, #f4f1ee, #f4f1ee 6px, #ebe6e1 6px, #ebe6e1 12px); color: var(--suave); border-style: dashed; font-weight: 500; line-height: 1.05; }
+.hora.pedible small { display: block; font-size: .62rem; font-weight: 500; }
