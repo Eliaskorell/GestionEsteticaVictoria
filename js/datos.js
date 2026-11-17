@@ -38,6 +38,7 @@ async function datosSupabase() {
     ocupados: (desde, hasta) => rpc('ocupados', { p_desde: desde, p_hasta: hasta }),
     reservar: (r) => rpc('reservar', { p_servicio: r.servicio_id, p_inicio: r.inicio, p_nombre: r.nombre, p_celular: r.celular, p_nota: r.nota || null }),
     turnoPorCodigo: async (codigo) => (await rpc('turno_por_codigo', { p_codigo: codigo }))[0] || null,
+    turnosPorCelular: (celular, nombre) => rpc('turnos_por_celular', { p_celular: celular, p_nombre: nombre }),
     cancelar: (codigo) => rpc('cancelar_turno', { p_codigo: codigo }),
     reprogramar: (codigo, inicio) => rpc('reprogramar_turno', { p_codigo: codigo, p_inicio: inicio }),
     anotarseEspera: (e) => rpc('anotarse_espera', { p_servicio: e.servicio_id, p_nombre: e.nombre, p_celular: e.celular, p_preferencia: e.preferencia || null }),

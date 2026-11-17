@@ -201,6 +201,29 @@ exception when exclusion_violation then
   raise exception 'Ese horario ya se ocupó. Elegí otro.';
 end $$;
 
+-- Buscar los turnos próximos de una clienta por celular (principal) + nombre (control).
+-- Compara los últimos 6 dígitos del celular (así da igual si lo escribe con 0, 15, 54 o 9)
+-- y el primer nombre sin mayúsculas ni tildes.
+create or replace function _primer_nombre(n text) returns text
+language sql immutable as $$
+  select split_part(lower(translate(trim(coalesce(n,'')), 'áéíóúüñÁÉÍÓÚÜÑ', 'aeiouunaeiouun')), ' ', 1)
+$$;
+
+create or replace function turnos_por_celular(p_celular text, p_nombre text)
+returns table (codigo text, servicio text, inicio timestamptz, fin timestamptz)
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if length(_normalizar_cel(p_celular)) < 8 then raise exception 'Revisá el número de celular.'; end if;
+  if length(_primer_nombre(p_nombre)) < 2 then raise exception 'Escribí tu nombre como lo pusiste al reservar.'; end if;
+  return query
+    select t.codigo, s.nombre, t.inicio, t.fin
+      from turnos t join servicios s on s.id = t.servicio_id
+     where t.estado = 'confirmado' and t.fin > now()
+       and right(_normalizar_cel(t.cliente_celular), 6) = right(_normalizar_cel(p_celular), 6)
+       and _primer_nombre(t.cliente_nombre) = _primer_nombre(p_nombre)
+     order by t.inicio;
+end $$;
+
 -- La clienta consulta su turno con el código del link
 create or replace function turno_por_codigo(p_codigo text)
 returns table (codigo text, servicio_id bigint, servicio text, profesional text, inicio timestamptz, fin timestamptz,
@@ -279,6 +302,7 @@ end $$;
 grant execute on function ocupados(timestamptz, timestamptz) to anon, authenticated;
 grant execute on function reservar(bigint, timestamptz, text, text, text) to anon, authenticated;
 grant execute on function turno_por_codigo(text) to anon, authenticated;
+grant execute on function turnos_por_celular(text, text) to anon, authenticated;
 grant execute on function cancelar_turno(text) to anon, authenticated;
 grant execute on function reprogramar_turno(text, timestamptz) to anon, authenticated;
 grant execute on function anotarse_espera(bigint, text, text, text) to anon, authenticated;

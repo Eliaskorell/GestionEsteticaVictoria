@@ -160,15 +160,14 @@ function reservar(servicioId) {
     const gcal = 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=' + encodeURIComponent(`${r.servicio.nombre} · VC Estética Integral`) +
       '&dates=' + [new Date(r.inicio), fin].map((d) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')).join('/') +
       '&location=' + encodeURIComponent(pub.config.direccion || '') + '&details=' + encodeURIComponent('Cambiar o cancelar: ' + link);
-    const msj = `¡Hola! Soy ${nombre}. Reservé ${r.servicio.nombre} para el ${fechaLarga(fechaDe(r.inicio))} a las ${horaDe(r.inicio)} hs. Código: ${codigo}`;
+    const msj = `¡Hola! Soy ${nombre}. Reservé ${r.servicio.nombre} para el ${fechaLarga(fechaDe(r.inicio))} a las ${horaDe(r.inicio)} hs.`;
     cuerpo.innerHTML = `
       <div class="ok"><b>¡Listo, tu turno quedó reservado!</b></div>
       ${resumen()}
-      <p class="chico">Guardá este código para cambiar o cancelar tu turno:</p>
-      <div class="codigo">${esc(codigo)}</div>
+      <p class="chico">Para cambiar o cancelar, entrá a <b>Mi turno</b> con tu celular y tu nombre.</p>
       <div class="acciones-col">
         <a class="boton claro" href="${gcal}" target="_blank" rel="noopener">Agregar a mi calendario</a>
-        ${pub.config.whatsapp ? `<a class="boton wa" href="${linkWA(pub.config.whatsapp, msj + '\n' + link)}" target="_blank" rel="noopener">Enviar comprobante por WhatsApp</a>` : ''}
+        ${pub.config.whatsapp ? `<a class="boton wa" href="${linkWA(pub.config.whatsapp, msj)}" target="_blank" rel="noopener">Enviar comprobante por WhatsApp</a>` : ''}
         <a class="boton claro" href="#/turno/${esc(codigo)}">Ver mi turno</a>
       </div>`;
   };
@@ -203,17 +202,32 @@ async function miTurno(codigo) {
   const cuerpo = abrirHoja('Mi turno', '');
   if (!codigo) {
     cuerpo.innerHTML = `
-      <p>Ingresá el código que te dimos al reservar.</p>
-      <form id="form"><div class="campo"><label for="cod">Código</label><input id="cod" autocapitalize="off" autocomplete="off" placeholder="Ej: 7edd1b5c"></div>
-      <button class="boton ancho">Buscar</button></form>
-      ${pub.config.whatsapp ? `<p class="chico suave" style="margin-top:1rem">¿No lo tenés? <a href="${linkWA(pub.config.whatsapp, '¡Hola! Necesito consultar por mi turno.')}" target="_blank" rel="noopener">Escribinos por WhatsApp</a>.</p>` : ''}`;
-    $('#form').onsubmit = (e) => { e.preventDefault(); const c = $('#cod').value.trim(); if (c) location.hash = '#/turno/' + encodeURIComponent(c); };
+      <p>Para cambiar o cancelar tu turno, ingresá el celular y el nombre con los que reservaste.</p>
+      <form id="form" novalidate>
+        <div class="campo"><label for="b-cel">Celular</label><input id="b-cel" type="tel" inputmode="tel" autocomplete="tel" placeholder="3493 15 123456"></div>
+        <div class="campo"><label for="b-nombre">Nombre</label><input id="b-nombre" autocomplete="given-name"></div>
+        <div id="err"></div>
+        <button class="boton ancho" id="buscar">Buscar mis turnos</button>
+      </form>
+      <div id="resultados"></div>
+      ${pub.config.whatsapp ? `<p class="chico suave" style="margin-top:1rem">¿No encontrás tu turno? <a href="${linkWA(pub.config.whatsapp, '¡Hola! Necesito consultar por mi turno.')}" target="_blank" rel="noopener">Escribinos por WhatsApp</a>.</p>` : ''}`;
+    $('#form').onsubmit = async (e) => {
+      e.preventDefault();
+      $('#err').innerHTML = ''; $('#resultados').innerHTML = '<p class="cargando">Buscando…</p>';
+      try {
+        const lista = await datos.turnosPorCelular($('#b-cel').value, $('#b-nombre').value);
+        $('#resultados').innerHTML = lista.length
+          ? '<p class="grupo-titulo">Tus próximos turnos</p><div class="lista-servicios">' + lista.map((t) => `
+              <a class="opcion" style="text-decoration:none" href="#/turno/${esc(t.codigo)}"><span><b>${esc(t.servicio)}</b><br><small>${fechaLarga(fechaDe(t.inicio))}, ${horaDe(t.inicio)} hs</small></span><small>Ver ›</small></a>`).join('') + '</div>'
+          : '<div class="aviso">No encontramos turnos próximos con esos datos. Revisá el número y el nombre, o escribinos.</div>';
+      } catch (er) { $('#resultados').innerHTML = ''; $('#err').innerHTML = `<div class="error">${esc(er.message)}</div>`; }
+    };
     return;
   }
   cuerpo.innerHTML = '<p class="cargando">Buscando tu turno…</p>';
   const t = await datos.turnoPorCodigo(decodeURIComponent(codigo));
   if (!t) {
-    cuerpo.innerHTML = `<div class="error">No encontramos un turno con ese código.</div><a class="boton claro ancho" href="#/turno">Probar con otro código</a>`;
+    cuerpo.innerHTML = `<div class="error">No encontramos un turno con ese código.</div><a class="boton claro ancho" href="#/turno">Buscar con mi celular</a>`;
     return;
   }
   const estados = { confirmado: 'Confirmado', cancelado: 'Cancelado', completado: 'Realizado', ausente: 'No asistió' };
