@@ -218,7 +218,7 @@ async function miTurno(codigo) {
   }
   const estados = { confirmado: 'Confirmado', cancelado: 'Cancelado', completado: 'Realizado', ausente: 'No asistió' };
   const wa = (txt) => (pub.config.whatsapp ? linkWA(pub.config.whatsapp, txt) : null);
-  const ficha = `<div class="resumen"><b>${esc(t.servicio)}</b><br>${fechaLarga(fechaDe(t.inicio))}, ${horaDe(t.inicio)} hs<br><span class="suave">Con ${esc(t.profesional)} · ${estados[t.estado]}</span></div>`;
+  const ficha = () => `<div class="resumen"><b>${esc(t.servicio)}</b><br>${fechaLarga(fechaDe(t.inicio))}, ${horaDe(t.inicio)} hs<br><span class="suave">Con ${esc(t.profesional)} · ${estados[t.estado]}</span></div>`;
 
   const pintar = (msj = '') => {
     let acciones = '';
@@ -230,13 +230,13 @@ async function miTurno(codigo) {
     } else {
       acciones = `<a class="boton ancho" href="#/reservar/${t.servicio_id}">Reservar otro turno</a>`;
     }
-    cuerpo.innerHTML = msj + `<p>Hola, ${esc(t.cliente_nombre.split(' ')[0])}.</p>` + ficha + acciones;
+    cuerpo.innerHTML = msj + `<p>Hola, ${esc(t.cliente_nombre.split(' ')[0])}.</p>` + ficha() + acciones;
     $('#cambiar')?.addEventListener('click', cambiar);
     $('#cancelar')?.addEventListener('click', confirmarCancelar);
   };
 
   const confirmarCancelar = () => {
-    cuerpo.innerHTML = ficha + `<p><b>¿Seguro que querés cancelar?</b> El horario queda libre para otra persona.</p><div id="err"></div>
+    cuerpo.innerHTML = ficha() + `<p><b>¿Seguro que querés cancelar?</b> El horario queda libre para otra persona.</p><div id="err"></div>
       <div class="acciones-col"><button class="boton peligro" id="si">Sí, cancelar</button><button class="boton claro" id="no">No, mantener</button></div>`;
     $('#no').onclick = () => pintar();
     $('#si').onclick = async () => {
@@ -247,7 +247,7 @@ async function miTurno(codigo) {
 
   const cambiar = () => {
     const servicio = servicioPorId(t.servicio_id) || { duracion_min: (new Date(t.fin) - new Date(t.inicio)) / 60e3, profesional_id: null };
-    cuerpo.innerHTML = `<button class="link volver" id="volver">‹ Volver</button>` + ficha + '<p>Elegí el nuevo día y horario:</p><div id="err"></div><div id="selector"></div>';
+    cuerpo.innerHTML = `<button class="link volver" id="volver">‹ Volver</button>` + ficha() + '<p>Elegí el nuevo día y horario:</p><div id="err"></div><div id="selector"></div>';
     $('#volver').onclick = () => pintar();
     selectorHorario($('#selector'), {
       datos, pub, servicio, ignorar: { inicio: t.inicio, profesional_id: servicio.profesional_id },
