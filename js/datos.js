@@ -12,7 +12,7 @@ export async function crearDatos() {
 
 // ---------------------------------------------------------------- Supabase
 async function datosSupabase() {
-  const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+  const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.110.1');
   const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   const ok = ({ data, error }) => {

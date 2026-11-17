@@ -11,6 +11,7 @@ const servicioPorId = (id) => pub.servicios.find((s) => s.id === +id);
 const profPorId = (id) => pub.profesionales.find((p) => p.id === +id);
 
 async function iniciar() {
+  const foto = document.querySelector('.foto-portada img'); if (foto) { foto.addEventListener('error', () => foto.remove()); if (foto.complete && !foto.naturalWidth) foto.remove(); }
   try { datos = await crearDatos(); pub = await datos.publico(); } catch (e) { $('#lista-servicios').innerHTML = `<div class="error">${esc(e.message)}</div>`; return; }
   pintarServicios();
   pintarEquipo();

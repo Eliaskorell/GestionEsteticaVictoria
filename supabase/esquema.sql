@@ -188,6 +188,11 @@ begin
     raise exception 'Ese horario ya no se puede reservar por la web. Escribinos por WhatsApp.'; end if;
   if p_inicio > now() + make_interval(days => c.dias_anticipacion) then
     raise exception 'Todavía no está abierta la agenda para esa fecha.'; end if;
+  -- Anti-abuso: máximo 2 turnos futuros por celular desde la web
+  if (select count(*) from turnos t
+       where t.estado = 'confirmado' and t.fin > now()
+         and right(_normalizar_cel(t.cliente_celular), 6) = right(_normalizar_cel(p_celular), 6)) >= 2 then
+    raise exception 'Ya tenés 2 turnos reservados. Para sacar otro, escribinos por WhatsApp.'; end if;
 
   v_fin := p_inicio + make_interval(mins => s.duracion_min);
   v_problema := _problema_hueco(s.profesional_id, p_inicio, v_fin);
@@ -277,6 +282,9 @@ returns void language plpgsql volatile security definer set search_path = public
 begin
   if length(trim(coalesce(p_nombre,''))) < 2 or length(_normalizar_cel(p_celular)) < 8 then
     raise exception 'Revisá tu nombre y tu celular.'; end if;
+  if (select count(*) from espera e where not e.atendida
+       and right(_normalizar_cel(e.cliente_celular), 6) = right(_normalizar_cel(p_celular), 6)) >= 3 then
+    raise exception 'Ya estás anotada en la lista de espera. Te avisamos si se libera un lugar.'; end if;
   insert into espera (servicio_id, cliente_nombre, cliente_celular, preferencia)
   values (p_servicio, trim(p_nombre), _normalizar_cel(p_celular), nullif(trim(p_preferencia),''));
 end $$;
@@ -307,4 +315,4 @@ grant execute on function cancelar_turno(text) to anon, authenticated;
 grant execute on function reprogramar_turno(text, timestamptz) to anon, authenticated;
 grant execute on function anotarse_espera(bigint, text, text, text) to anon, authenticated;
 grant execute on function intercambiar_turnos(bigint, bigint) to authenticated;
-revoke execute on function _problema_hueco(bigint, timestamptz, timestamptz, bigint) from anon;
+revoke execute on function _problema_hueco(bigint, timestamptz, timestamptz, bigint) from public, anon;
