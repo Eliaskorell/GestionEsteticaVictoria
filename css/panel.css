@@ -65,3 +65,23 @@ body.panel { padding-bottom: calc(76px + env(safe-area-inset-bottom)); }
 .novedad span { color: var(--suave); font-size: .88rem; }
 .novedad small { display: block; color: var(--suave); font-size: .75rem; margin-top: .15rem; }
 .tabs a { font-size: .68rem; }
+
+/* Calendario mensual de la agenda */
+.calendario { background: var(--papel); border: 1px solid var(--linea); border-radius: 14px; padding: .6rem .6rem .8rem; margin-bottom: 1rem; }
+.cal-cabeza { display: flex; align-items: center; justify-content: space-between; margin-bottom: .4rem; }
+.cal-cabeza b { font-family: var(--serif); font-size: 1.35rem; }
+.cal-cabeza .flecha { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--linea); background: var(--papel); font-size: 1.2rem; cursor: pointer; color: var(--tinta); }
+.cal-grilla { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cal-sem { text-align: center; font-size: .72rem; font-weight: 600; color: var(--suave); padding: .2rem 0; }
+.cal-dia { position: relative; min-height: 54px; border-radius: 10px; border: 1px solid transparent; background: var(--fondo); cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: .35rem .1rem .3rem; font: inherit; color: var(--tinta); }
+.cal-dia b { font-size: 1rem; line-height: 1.1; }
+.cal-dia small { font-size: .6rem; color: var(--suave); line-height: 1.2; margin-top: .15rem; white-space: nowrap; }
+.cal-dia i { position: absolute; left: 50%; bottom: 5px; transform: translateX(-50%); height: 4px; width: calc(6px + var(--n) * 3px); max-width: 80%; border-radius: 4px; background: var(--malva); opacity: .75; }
+.cal-dia.hoy { border-color: var(--malva); }
+.cal-dia.elegido { background: var(--malva); color: #fff; }
+.cal-dia.elegido small { color: #f3dde3; }
+.cal-dia.elegido i { background: #fff; }
+.cal-dia.pasado:not(.elegido) { opacity: .5; }
+.cal-dia.cerrado:not(.elegido) { background: transparent; color: var(--suave); }
+.nav-fecha .titulo span { display: block; }
+#cabeza-dia { scroll-margin-top: 64px; }

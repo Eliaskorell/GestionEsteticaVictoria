@@ -7,7 +7,17 @@
 import webpush from "npm:web-push@3.6.7";
 import { createClient } from "npm:@supabase/supabase-js@2.110.1";
 
-const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
+// Clave de servidor que Supabase le pone a la función (según el proyecto viene con un nombre u otro)
+function claveServidor(): string {
+  const directa = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SUPABASE_SECRET_KEY");
+  if (directa) return directa;
+  try {
+    const varias = JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") ?? "{}");
+    return varias.default ?? Object.values(varias)[0];
+  } catch { return ""; }
+}
+
+const sb = createClient(Deno.env.get("SUPABASE_URL")!, claveServidor(), {
   auth: { persistSession: false },
 });
 

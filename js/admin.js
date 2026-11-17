@@ -75,7 +75,7 @@ async function pintar() {
     <nav class="tabs">${Object.keys(TITULOS).map((k) => `
       <a href="#/${k}" ${k === v ? 'aria-current="page"' : ''}>${ICONOS[k]}${ETIQUETAS[k]}
       ${k === 'espera' && pendientes ? `<span class="globo">${pendientes}</span>` : ''}${k === 'novedades' && sinVer ? `<span class="globo">${sinVer}</span>` : ''}</a>`).join('')}</nav>`;
-  $('#ir-hoy')?.addEventListener('click', () => { estado.fecha = hoy(); vistaAgenda(); });
+  $('#ir-hoy')?.addEventListener('click', () => { estado.fecha = hoy(); estado.mes = null; vistaAgenda(); });
   const el = $('#vista');
   try {
     await { agenda: vistaAgenda, novedades: vistaNovedades, nuevo: () => vistaNuevo(), espera: vistaEspera, recordar: vistaRecordar, ajustes: vistaAjustes }[v](el);
@@ -98,17 +98,51 @@ function cerrarHoja() { $('#hoja').innerHTML = ''; document.body.style.overflow 
 // ---------------------------------------------------------------- agenda
 async function vistaAgenda(el = $('#vista')) {
   const f = estado.fecha;
-  const desde = aISO(f, 0), hasta = aISO(sumarDias(f, 1), 0);
-  const [turnos, bloqueos] = await Promise.all([datos.turnos(desde, hasta), datos.bloqueos(desde, hasta)]);
   const activos = base.profesionales.filter((p) => p.activo);
   const mostrar = estado.prof === 'todas' ? activos : activos.filter((p) => p.id === +estado.prof);
-  const confirmados = turnos.filter((t) => t.estado === 'confirmado').length;
+  const idsMostrar = new Set(mostrar.map((p) => p.id));
+
+  // Mes que se ve en el calendario (por defecto, el del día elegido)
+  const mes = estado.mes || f.slice(0, 7);
+  const primero = mes + '-01';
+  const ultimo = sumarDias(sumarDias(primero, 32).slice(0, 7) + '-01', -1);
+  const [turnosMes, bloqueosMes] = await Promise.all([
+    datos.turnos(aISO(primero, 0), aISO(sumarDias(ultimo, 1), 0)),
+    datos.bloqueos(aISO(primero, 0), aISO(sumarDias(ultimo, 1), 0)),
+  ]);
+  const enMes = f.slice(0, 7) === mes;
+  const [turnosDia, bloqueosDia] = enMes
+    ? [turnosMes.filter((t) => fechaDe(t.inicio) === f), bloqueosMes.filter((b) => fechaDe(b.inicio) <= f && fechaDe(b.fin) >= f)]
+    : await Promise.all([datos.turnos(aISO(f, 0), aISO(sumarDias(f, 1), 0)), datos.bloqueos(aISO(f, 0), aISO(sumarDias(f, 1), 0))]);
+  const turnos = turnosDia, bloqueos = bloqueosDia;
+  const confirmados = turnos.filter((t) => t.estado === 'confirmado' && idsMostrar.has(t.profesional_id)).length;
+
+  // Celdas del calendario: lunes a domingo
+  const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const offset = (diaSemana(primero) + 6) % 7;
+  const celdas = [];
+  for (let i = 0; i < offset; i++) celdas.push('<span class="cal-vacio"></span>');
+  for (let d = primero; d <= ultimo; d = sumarDias(d, 1)) {
+    const n = turnosMes.filter((t) => t.estado === 'confirmado' && fechaDe(t.inicio) === d && idsMostrar.has(t.profesional_id)).length;
+    const atiende = base.horarios.some((h) => h.dia === diaSemana(d) && idsMostrar.has(h.profesional_id));
+    const bloqueado = bloqueosMes.some((b) => fechaDe(b.inicio) <= d && fechaDe(b.fin) >= d);
+    const clases = ['cal-dia', d === f ? 'elegido' : '', d === hoy() ? 'hoy' : '', d < hoy() ? 'pasado' : '', atiende ? '' : 'cerrado'].join(' ');
+    celdas.push(`<button class="${clases}" data-dia="${d}" aria-label="${fechaLarga(d)}: ${n} turno${n === 1 ? '' : 's'}" aria-pressed="${d === f}">
+      <b>${+d.slice(8)}</b><small>${n ? n + (n === 1 ? ' turno' : ' turnos') : bloqueado ? 'bloq.' : ''}</small>${n ? `<i style="--n:${Math.min(n, 8)}"></i>` : ''}</button>`);
+  }
 
   el.innerHTML = `
-    <div class="nav-fecha">
+    <div class="calendario">
+      <div class="cal-cabeza">
+        <button class="flecha" id="mes-ant" aria-label="Mes anterior">‹</button>
+        <b>${MESES[+mes.slice(5) - 1]} ${mes.slice(0, 4)}</b>
+        <button class="flecha" id="mes-sig" aria-label="Mes siguiente">›</button>
+      </div>
+      <div class="cal-grilla">${['Lu','Ma','Mi','Ju','Vi','Sá','Do'].map((x) => `<span class="cal-sem">${x}</span>`).join('')}${celdas.join('')}</div>
+    </div>
+    <div class="nav-fecha" id="cabeza-dia">
       <button class="flecha" id="ant" aria-label="Día anterior">‹</button>
-      <label class="titulo"><b>${f === hoy() ? 'Hoy · ' : ''}${fechaLarga(f)}</b>
-        <input type="date" id="fecha" value="${f}" aria-label="Ir a fecha"> · ${confirmados} turno${confirmados === 1 ? '' : 's'}</label>
+      <div class="titulo"><b>${f === hoy() ? 'Hoy · ' : ''}${fechaLarga(f)}</b><span class="suave chico">${confirmados} turno${confirmados === 1 ? '' : 's'}</span></div>
       <button class="flecha" id="sig" aria-label="Día siguiente">›</button>
     </div>
     <div class="filtros">
@@ -121,9 +155,16 @@ async function vistaAgenda(el = $('#vista')) {
     </div>
     <div id="dia"></div>`;
 
-  $('#ant').onclick = () => { estado.fecha = sumarDias(f, -1); vistaAgenda(); };
-  $('#sig').onclick = () => { estado.fecha = sumarDias(f, 1); vistaAgenda(); };
-  $('#fecha').onchange = (e) => { if (e.target.value) { estado.fecha = e.target.value; vistaAgenda(); } };
+  const irA = (d, bajar = false) => {
+    estado.fecha = d; estado.mes = d.slice(0, 7);
+    vistaAgenda().then(() => { if (bajar) $('#cabeza-dia')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+  };
+  $('#ant').onclick = () => irA(sumarDias(f, -1));
+  $('#sig').onclick = () => irA(sumarDias(f, 1));
+  const cambiarMes = (delta) => { const d = new Date(primero + 'T12:00:00Z'); d.setUTCMonth(d.getUTCMonth() + delta); estado.mes = d.toISOString().slice(0, 7); vistaAgenda(); };
+  $('#mes-ant').onclick = () => cambiarMes(-1);
+  $('#mes-sig').onclick = () => cambiarMes(1);
+  el.querySelector('.cal-grilla').onclick = (e) => { const b = e.target.closest('.cal-dia'); if (b) irA(b.dataset.dia, true); };
   el.querySelector('.filtros').onclick = (e) => { const b = e.target.closest('.chip'); if (b) { estado.prof = b.dataset.prof; vistaAgenda(); } };
   $('#btn-nuevo').onclick = (e) => { e.preventDefault(); estado.nuevo = { fecha: f }; location.hash = '#/nuevo'; };
   $('#btn-bloquear').onclick = () => hojaBloqueo(f);
@@ -227,7 +268,7 @@ function hojaTurno(t) {
     const guardar = async (iso, sobreturno = t.sobreturno) => {
       try {
         Object.assign(t, await datos.actualizarTurno(t.id, { inicio: iso, fin: sumarMin(iso, (ms(t.fin) - ms(t.inicio)) / 60e3), sobreturno, recordado: false }));
-        estado.fecha = fechaDe(t.inicio); vistaAgenda();
+        estado.fecha = fechaDe(t.inicio); estado.mes = null; vistaAgenda();
         principal(`<div class="ok">Movido al ${fechaLarga(fechaDe(t.inicio))} a las ${horaDe(t.inicio)}. Avisale a la clienta 👇</div>`);
         cuerpo.querySelector('.boton.wa').href = waCliente(`¡Hola ${t.cliente_nombre.split(' ')[0]}! Te cambiamos el turno de ${nombreServ(t.servicio_id)} para el ${fechaLarga(fechaDe(t.inicio))} a las ${horaDe(t.inicio)} hs. Si no te queda bien avisame. Tu turno: ${linkTurno}`);
       } catch (e) { $('#err').innerHTML = `<div class="error">${esc(e.message)}</div>`; $('#err').scrollIntoView({ block: 'nearest' }); }
@@ -397,7 +438,7 @@ function vistaNuevo(el = $('#vista')) {
           <button class="boton claro" id="otro">Cargar otro</button>
           <button class="boton claro" id="ver">Ver en la agenda</button></div>`;
       $('#otro').onclick = () => vistaNuevo();
-      $('#ver').onclick = () => { estado.fecha = fechaDe(inicio); location.hash = '#/agenda'; };
+      $('#ver').onclick = () => { estado.fecha = fechaDe(inicio); estado.mes = null; location.hash = '#/agenda'; };
     } catch (er) { err(er.message); $('#n-ok').disabled = false; }
   };
 }
@@ -437,7 +478,7 @@ async function vistaNovedades(el = $('#vista')) {
   el.onclick = (e) => {
     const b = e.target.closest('.novedad');
     if (!b) return;
-    if (b.dataset.fecha) { estado.fecha = b.dataset.fecha; location.hash = '#/agenda'; }
+    if (b.dataset.fecha) { estado.fecha = b.dataset.fecha; estado.mes = null; location.hash = '#/agenda'; }
     else location.hash = '#/espera';
   };
   if (lista.some((n) => !n.vista)) {
