@@ -83,7 +83,8 @@ create or replace function _novedad_turno() returns trigger
 language plpgsql security definer set search_path = public as $$
 declare v_serv text; v_quien text;
 begin
-  if auth.uid() is not null then return new; end if;   -- lo hizo Victoria desde el panel
+  -- Solo lo que hacen las clientas desde la página (las funciones públicas marcan app.origen = 'web').
+  if coalesce(current_setting('app.origen', true), '') <> 'web' then return new; end if;
   select nombre into v_serv from servicios where id = new.servicio_id;
   v_quien := new.cliente_nombre;
   if tg_op = 'INSERT' then
@@ -104,7 +105,7 @@ create or replace function _novedad_espera() returns trigger
 language plpgsql security definer set search_path = public as $$
 declare v_serv text;
 begin
-  if auth.uid() is not null then return new; end if;
+  if coalesce(current_setting('app.origen', true), '') <> 'web' then return new; end if;
   select nombre into v_serv from servicios where id = new.servicio_id;
   perform _avisar('espera', 'Lista de espera: ' || new.cliente_nombre,
                   v_serv || coalesce(' · ' || new.preferencia, ''), null, null);

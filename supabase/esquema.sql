@@ -179,6 +179,7 @@ create or replace function reservar(p_servicio bigint, p_inicio timestamptz, p_n
 returns text language plpgsql volatile security definer set search_path = public as $$
 declare s servicios; c config; v_fin timestamptz; v_problema text; v_codigo text;
 begin
+  perform set_config('app.origen', 'web', true);  -- para que el aviso sepa que lo hizo una clienta
   select * into c from config where id = 1;
   select * into s from servicios where id = p_servicio and activo;
   if s.id is null then raise exception 'Ese servicio no está disponible.'; end if;
@@ -248,6 +249,7 @@ create or replace function cancelar_turno(p_codigo text)
 returns void language plpgsql volatile security definer set search_path = public as $$
 declare t turnos; c config;
 begin
+  perform set_config('app.origen', 'web', true);  -- para que el aviso sepa que lo hizo una clienta
   select * into c from config where id = 1;
   select * into t from turnos where codigo = lower(trim(p_codigo));
   if t.id is null then raise exception 'No encontramos ese turno.'; end if;
@@ -261,6 +263,7 @@ create or replace function reprogramar_turno(p_codigo text, p_inicio timestamptz
 returns void language plpgsql volatile security definer set search_path = public as $$
 declare t turnos; c config; v_fin timestamptz; v_problema text;
 begin
+  perform set_config('app.origen', 'web', true);  -- para que el aviso sepa que lo hizo una clienta
   select * into c from config where id = 1;
   select * into t from turnos where codigo = lower(trim(p_codigo));
   if t.id is null then raise exception 'No encontramos ese turno.'; end if;
@@ -281,6 +284,7 @@ end $$;
 create or replace function anotarse_espera(p_servicio bigint, p_nombre text, p_celular text, p_preferencia text default null)
 returns void language plpgsql volatile security definer set search_path = public as $$
 begin
+  perform set_config('app.origen', 'web', true);  -- para que el aviso sepa que lo hizo una clienta
   if length(trim(coalesce(p_nombre,''))) < 2 or length(_normalizar_cel(p_celular)) < 8 then
     raise exception 'Revisá tu nombre y tu celular.'; end if;
   if position(' ' in trim(p_nombre)) = 0 then raise exception 'Escribí tu nombre y apellido.'; end if;
