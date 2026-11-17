@@ -159,3 +159,6 @@ input:focus, select:focus, textarea:focus, .boton:focus-visible, .chip:focus-vis
 .codigo { font: 600 1.6rem/1 ui-monospace, Menlo, monospace; letter-spacing: .15em; background: var(--papel); border: 1px dashed var(--lavanda); padding: .6em .8em; border-radius: 10px; display: inline-block; margin: .3rem 0 1rem; }
 .acciones-col { display: grid; gap: .6rem; }
 .cargando { padding: 2rem 0; text-align: center; color: var(--suave); }
+
+/* Si la foto cargó, se oculta el reemplazo */
+.foto-portada img ~ .placeholder { display: none; }
