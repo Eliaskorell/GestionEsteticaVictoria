@@ -183,6 +183,7 @@ begin
   select * into s from servicios where id = p_servicio and activo;
   if s.id is null then raise exception 'Ese servicio no está disponible.'; end if;
   if length(trim(coalesce(p_nombre,''))) < 2 then raise exception 'Falta tu nombre.'; end if;
+  if position(' ' in trim(p_nombre)) = 0 then raise exception 'Escribí tu nombre y apellido.'; end if;
   if length(_normalizar_cel(p_celular)) < 8 then raise exception 'Revisá el número de celular.'; end if;
   if p_inicio < now() + make_interval(hours => c.horas_min_reserva) then
     raise exception 'Ese horario ya no se puede reservar por la web. Escribinos por WhatsApp.'; end if;
@@ -282,6 +283,7 @@ returns void language plpgsql volatile security definer set search_path = public
 begin
   if length(trim(coalesce(p_nombre,''))) < 2 or length(_normalizar_cel(p_celular)) < 8 then
     raise exception 'Revisá tu nombre y tu celular.'; end if;
+  if position(' ' in trim(p_nombre)) = 0 then raise exception 'Escribí tu nombre y apellido.'; end if;
   if (select count(*) from espera e where not e.atendida
        and right(_normalizar_cel(e.cliente_celular), 6) = right(_normalizar_cel(p_celular), 6)) >= 3 then
     raise exception 'Ya estás anotada en la lista de espera. Te avisamos si se libera un lugar.'; end if;

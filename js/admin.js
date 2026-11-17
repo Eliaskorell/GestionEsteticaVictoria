@@ -332,7 +332,8 @@ function vistaNuevo(el = $('#vista')) {
         ${[...new Set(activos.map((s) => s.categoria))].map((c) => `<optgroup label="${esc(c)}">${activos.filter((s) => s.categoria === c).map((s) => `<option value="${s.id}" ${preServ?.id === s.id ? 'selected' : ''}>${esc(s.nombre)} · ${s.duracion_min} min · ${esc(prof(s.profesional_id)?.nombre.split(' ')[0])}</option>`).join('')}</optgroup>`).join('')}
       </select></div>
       <div class="fila">
-        <div class="campo"><label for="n-nombre">Clienta</label><input id="n-nombre" autocomplete="off"></div>
+        <div class="campo"><label for="n-nombre">Nombre</label><input id="n-nombre" autocomplete="off"></div>
+        <div class="campo"><label for="n-apellido">Apellido</label><input id="n-apellido" autocomplete="off"></div>
         <div class="campo"><label for="n-cel">Celular</label><input id="n-cel" type="tel" inputmode="tel" autocomplete="off"></div>
       </div>
       <div class="campo"><label for="n-nota">Nota <span class="suave">(opcional)</span></label><input id="n-nota"></div>
@@ -368,8 +369,11 @@ function vistaNuevo(el = $('#vista')) {
   $('#form').onsubmit = async (e) => {
     e.preventDefault();
     const err = (m) => { $('#err').innerHTML = `<div class="error">${esc(m)}</div>`; };
-    const s = servicio(), nombre = $('#n-nombre').value.trim(), cel = $('#n-cel').value.trim();
-    if (nombre.length < 2) return err('Poné el nombre de la clienta.');
+    const s = servicio(), cel = $('#n-cel').value.trim();
+    const nom = $('#n-nombre').value.trim(), ape = $('#n-apellido').value.trim();
+    if (nom.length < 2) return err('Poné el nombre de la clienta.');
+    if (ape.length < 2) return err('Poné el apellido de la clienta.');
+    const nombre = `${nom} ${ape}`;
     if (cel.replace(/\D/g, '').length < 8) return err('Revisá el celular.');
     let inicio = elegido, sobreturno = false;
     if ($('#n-manual').checked) {

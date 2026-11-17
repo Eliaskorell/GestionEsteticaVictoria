@@ -97,6 +97,14 @@ function ruta() {
   else if ($('#hoja').innerHTML) { $('#hoja').innerHTML = ''; document.body.style.overflow = ''; }
 }
 
+/** Nombre y apellido juntos; tira error si falta alguno */
+const nombreCompleto = () => {
+  const n = $('#nombre').value.trim(), a = $('#apellido').value.trim();
+  if (n.length < 2) throw new Error('Falta tu nombre.');
+  if (a.length < 2) throw new Error('Falta tu apellido.');
+  return `${n} ${a}`;
+};
+
 const barra = (n) => `<div class="pasos">${[1, 2, 3].map((i) => `<span class="${i <= n ? 'hecho' : ''}"></span>`).join('')}</div>`;
 
 // ---------------------------------------------------------------- reservar
@@ -134,7 +142,8 @@ function reservar(servicioId) {
     cuerpo.onclick = null;
     cuerpo.innerHTML = barra(3) + `<button class="link volver" id="volver">‹ Cambiar horario</button>` + resumen() + `
       <form id="form" novalidate>
-        <div class="campo"><label for="nombre">Nombre y apellido</label><input id="nombre" autocomplete="name" required></div>
+        <div class="fila"><div class="campo"><label for="nombre">Nombre</label><input id="nombre" autocomplete="given-name" required></div>
+        <div class="campo"><label for="apellido">Apellido</label><input id="apellido" autocomplete="family-name" required></div></div>
         <div class="campo"><label for="cel">Celular (WhatsApp)</label><input id="cel" type="tel" inputmode="tel" autocomplete="tel" placeholder="3493 15 123456" required></div>
         <div class="campo"><label for="nota">¿Algo que debamos saber? <span class="suave">(opcional)</span></label><textarea id="nota" placeholder="Zona a tratar, alergias, si es tu primera vez…"></textarea></div>
         <div id="err"></div>
@@ -146,8 +155,8 @@ function reservar(servicioId) {
       e.preventDefault();
       const btn = $('#confirmar'); btn.disabled = true; btn.textContent = 'Reservando…'; $('#err').innerHTML = '';
       try {
-        const codigo = await datos.reservar({ servicio_id: r.servicio.id, inicio: r.inicio, nombre: $('#nombre').value, celular: $('#cel').value, nota: $('#nota').value });
-        listo(codigo, $('#nombre').value.trim());
+        const codigo = await datos.reservar({ servicio_id: r.servicio.id, inicio: r.inicio, nombre: nombreCompleto(), celular: $('#cel').value, nota: $('#nota').value });
+        listo(codigo, nombreCompleto());
       } catch (er) {
         $('#err').innerHTML = `<div class="error">${esc(er.message)}</div>`;
         btn.disabled = false; btn.textContent = 'Confirmar turno';
@@ -178,7 +187,8 @@ function reservar(servicioId) {
     cuerpo.innerHTML = `<button class="link volver" id="volver">‹ Volver a los horarios</button>` + resumen() + `
       <p>Dejanos tus datos y si se libera un lugar para <b>${esc(r.servicio.nombre)}</b> te escribimos por WhatsApp.</p>
       <form id="form" novalidate>
-        <div class="campo"><label for="nombre">Nombre y apellido</label><input id="nombre" autocomplete="name"></div>
+        <div class="fila"><div class="campo"><label for="nombre">Nombre</label><input id="nombre" autocomplete="given-name" required></div>
+        <div class="campo"><label for="apellido">Apellido</label><input id="apellido" autocomplete="family-name" required></div></div>
         <div class="campo"><label for="cel">Celular (WhatsApp)</label><input id="cel" type="tel" inputmode="tel" autocomplete="tel"></div>
         <div class="campo"><label for="pref">¿Qué días u horarios te quedan bien?</label><input id="pref" placeholder="Ej: martes o jueves a la tarde"></div>
         <div id="err"></div>
@@ -188,7 +198,7 @@ function reservar(servicioId) {
     $('#form').onsubmit = async (e) => {
       e.preventDefault();
       try {
-        await datos.anotarseEspera({ servicio_id: r.servicio.id, nombre: $('#nombre').value, celular: $('#cel').value, preferencia: $('#pref').value });
+        await datos.anotarseEspera({ servicio_id: r.servicio.id, nombre: nombreCompleto(), celular: $('#cel').value, preferencia: $('#pref').value });
         cuerpo.innerHTML = `<div class="ok"><b>¡Te anotamos!</b> Si se libera un turno te escribimos.</div><button class="boton claro ancho" id="fin">Cerrar</button>`;
         $('#fin').onclick = cerrarHoja;
       } catch (er) { $('#err').innerHTML = `<div class="error">${esc(er.message)}</div>`; }
@@ -245,7 +255,7 @@ async function miTurno(codigo) {
     } else {
       acciones = `<a class="boton ancho" href="#/reservar/${t.servicio_id}">Reservar otro turno</a>`;
     }
-    cuerpo.innerHTML = msj + `<p>Hola, ${esc(t.cliente_nombre.split(' ')[0])}.</p>` + ficha() + acciones;
+    cuerpo.innerHTML = msj + `<p>Hola, <b>${esc(t.cliente_nombre)}</b>.</p>` + ficha() + acciones;
     $('#cambiar')?.addEventListener('click', cambiar);
     $('#cancelar')?.addEventListener('click', confirmarCancelar);
   };
