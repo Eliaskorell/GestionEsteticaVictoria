@@ -488,14 +488,19 @@ async function vistaNovedades(el = $('#vista')) {
   }
 }
 
+const celLindo = (c) => {
+  let d = String(c || '').replace(/\D/g, '').replace(/^549?/, '').replace(/^0/, '');
+  if (d.length === 12 && d.slice(4, 6) === '15') return `${d.slice(0, 4)} 15 ${d.slice(6)}`;
+  return d.length === 10 ? `${d.slice(0, 4)} ${d.slice(4)}` : d;
+};
 function hojaPedido(n) {
   const x = n.datos || {};
   const pri = (nombre) => String(nombre || '').split(' ')[0];
   const cuando = (iso) => iso ? `${fechaLarga(fechaDe(iso))} a las ${horaDe(iso)}` : '';
   const cuerpo = abrirHoja('Pedido de cambio', `
-    <div class="resumen"><b>${esc(x.solicitante || '')}</b> · ${esc(x.solicitante_cel || '')}<br>
+    <div class="resumen"><b>${esc(x.solicitante || '')}</b> · ${esc(celLindo(x.solicitante_cel))}<br>
       Quiere pasar <b>${esc(x.servicio || '')}</b><br>del ${cuando(x.desde)}<br>al <b>${cuando(x.hacia)}</b></div>
-    ${x.ocupante ? `<div class="resumen">Ese horario lo tiene <b>${esc(x.ocupante)}</b> · ${esc(x.ocupante_cel || '')}<br><span class="suave">${cuando(x.ocupante_inicio)}</span></div>` : '<div class="aviso">Ese horario ya se liberó: podés moverla desde la agenda.</div>'}
+    ${x.ocupante ? `<div class="resumen">Ese horario lo tiene <b>${esc(x.ocupante)}</b> · ${esc(celLindo(x.ocupante_cel))}<br><span class="suave">${cuando(x.ocupante_inicio)}</span></div>` : '<div class="aviso">Ese horario ya se liberó: podés moverla desde la agenda.</div>'}
     <div id="err"></div>
     <div class="acciones-col">
       <a class="boton wa" target="_blank" rel="noopener" href="${linkWA(celWA(x.solicitante_cel), `¡Hola ${pri(x.solicitante)}! Recibí tu pedido para pasar tu turno de ${x.servicio} al ${cuando(x.hacia)} hs. Me fijo si se puede y te aviso.`)}">WhatsApp a ${esc(pri(x.solicitante))} (pide el cambio)</a>
