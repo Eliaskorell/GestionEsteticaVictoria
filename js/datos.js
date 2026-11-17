@@ -75,6 +75,22 @@ async function datosSupabase() {
         : ok(await sb.from(tabla).insert(resto).select().single());
     },
     borrar: async (tabla, id) => ok(await sb.from(tabla).delete().eq('id', id)),
+
+    // ---- novedades y notificaciones
+    novedades: async () => ok(await sb.from('novedades').select('*').order('creado', { ascending: false }).limit(60)),
+    novedadesSinVer: async () => {
+      const { count, error } = await sb.from('novedades').select('id', { count: 'exact', head: true }).eq('vista', false);
+      if (error) throw new Error(error.message);
+      return count || 0;
+    },
+    marcarNovedadesVistas: async () => ok(await sb.from('novedades').update({ vista: true }).eq('vista', false)),
+    async clavePush() {
+      const r = await fetch(`${SUPABASE_URL}/functions/v1/avisos`, { headers: { apikey: SUPABASE_ANON_KEY } });
+      if (!r.ok) throw new Error('El servicio de notificaciones todavía no está activo.');
+      return (await r.json()).publica;
+    },
+    guardarSuscripcion: async (s) => ok(await sb.from('push_suscripciones').upsert(s, { onConflict: 'endpoint' })),
+    borrarSuscripcion: async (endpoint) => ok(await sb.from('push_suscripciones').delete().eq('endpoint', endpoint)),
   };
 }
 

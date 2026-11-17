@@ -55,25 +55,30 @@ const ICONOS = {
   agenda: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
   nuevo: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>',
   espera: '<svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>',
-  recordar: '<svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"/></svg>',
+  novedades: '<svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"/></svg>',
+  recordar: '<svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-12.6 7.3L3 21l2.2-5.4A8.5 8.5 0 1 1 21 11.5Z"/></svg>',
   ajustes: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg>',
 };
-const TITULOS = { agenda: 'Agenda', nuevo: 'Nuevo turno', espera: 'Lista de espera', recordar: 'Recordatorios', ajustes: 'Ajustes' };
+const TITULOS = { agenda: 'Agenda', novedades: 'Novedades', nuevo: 'Nuevo turno', espera: 'Lista de espera', recordar: 'Recordatorios', ajustes: 'Ajustes' };
+const ETIQUETAS = { agenda: 'Agenda', novedades: 'Avisos', nuevo: 'Nuevo', espera: 'Espera', recordar: 'Recordar', ajustes: 'Ajustes' };
 
 async function pintar() {
   const v = TITULOS[estado.vista] ? estado.vista : 'agenda';
-  const pendientes = (await datos.espera()).filter((e) => !e.atendida).length;
+  const [pendientes, sinVer] = await Promise.all([
+    datos.espera().then((l) => l.filter((e) => !e.atendida).length).catch(() => 0),
+    datos.novedadesSinVer().catch(() => 0),
+  ]);
   app.innerHTML = `
     <header class="barra-sup"><div class="envoltura"><h1>${TITULOS[v]}</h1>
       ${v === 'agenda' ? '<button class="boton claro chico" id="ir-hoy">Hoy</button>' : ''}</div></header>
     <main class="contenido"><div class="envoltura" id="vista"><p class="cargando">Cargando…</p></div></main>
     <nav class="tabs">${Object.keys(TITULOS).map((k) => `
-      <a href="#/${k}" ${k === v ? 'aria-current="page"' : ''}>${ICONOS[k]}${{ agenda: 'Agenda', nuevo: 'Nuevo', espera: 'Espera', recordar: 'Recordar', ajustes: 'Ajustes' }[k]}
-      ${k === 'espera' && pendientes ? `<span class="globo">${pendientes}</span>` : ''}</a>`).join('')}</nav>`;
+      <a href="#/${k}" ${k === v ? 'aria-current="page"' : ''}>${ICONOS[k]}${ETIQUETAS[k]}
+      ${k === 'espera' && pendientes ? `<span class="globo">${pendientes}</span>` : ''}${k === 'novedades' && sinVer ? `<span class="globo">${sinVer}</span>` : ''}</a>`).join('')}</nav>`;
   $('#ir-hoy')?.addEventListener('click', () => { estado.fecha = hoy(); vistaAgenda(); });
   const el = $('#vista');
   try {
-    await { agenda: vistaAgenda, nuevo: () => vistaNuevo(), espera: vistaEspera, recordar: vistaRecordar, ajustes: vistaAjustes }[v](el);
+    await { agenda: vistaAgenda, novedades: vistaNovedades, nuevo: () => vistaNuevo(), espera: vistaEspera, recordar: vistaRecordar, ajustes: vistaAjustes }[v](el);
   } catch (e) { el.innerHTML = `<div class="error">${esc(e.message)}</div>`; }
 }
 
@@ -412,6 +417,35 @@ async function vistaEspera(el = $('#vista')) {
   el.onclick = async (ev) => { const b = ev.target.closest('button[data-id]'); if (!b) return; await datos.marcarEspera(+b.dataset.id, b.dataset.at === '1'); pintar(); };
 }
 
+// ---------------------------------------------------------------- novedades
+const ICONO_NOV = { reserva: '📅', cambio: '🔁', cancelacion: '✖️', espera: '⏳' };
+function hace(iso) {
+  const min = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  if (min < 1) return 'recién';
+  if (min < 60) return `hace ${min} min`;
+  if (min < 1440) return `hace ${Math.round(min / 60)} h`;
+  return `${fechaCorta(fechaDe(iso))} ${horaDe(iso)}`;
+}
+async function vistaNovedades(el = $('#vista')) {
+  const lista = await datos.novedades();
+  el.innerHTML = `<p class="suave">Lo que hicieron las clientas desde la página: reservas, cambios, cancelaciones y anotadas en espera.</p>` +
+    (lista.length ? lista.map((n) => `
+      <button class="novedad t-${esc(n.tipo)} ${n.vista ? '' : 'nueva'}" ${n.fecha_turno ? `data-fecha="${fechaDe(n.fecha_turno)}"` : `data-espera="1"`}>
+        <span class="ico" aria-hidden="true">${ICONO_NOV[n.tipo] || '•'}</span>
+        <span><b>${esc(n.titulo)}</b>${esc(n.detalle || '')}<small>${hace(n.creado)}</small></span>
+      </button>`).join('') : '<p class="vacio">Todavía no hay novedades.</p>');
+  el.onclick = (e) => {
+    const b = e.target.closest('.novedad');
+    if (!b) return;
+    if (b.dataset.fecha) { estado.fecha = b.dataset.fecha; location.hash = '#/agenda'; }
+    else location.hash = '#/espera';
+  };
+  if (lista.some((n) => !n.vista)) {
+    await datos.marcarNovedadesVistas();
+    $('.tabs a[href="#/novedades"] .globo')?.remove();
+  }
+}
+
 // ---------------------------------------------------------------- recordatorios
 async function vistaRecordar(el = $('#vista')) {
   const manana = sumarDias(hoy(), 1);
@@ -476,6 +510,12 @@ async function vistaAjustes(el = $('#vista')) {
     </section>
 
     <section class="seccion-ajustes">
+      <h2>Notificaciones</h2>
+      <p class="suave">Te avisa en este celular cuando una clienta reserva, cambia o cancela un turno, o se anota en la lista de espera.</p>
+      <div id="estado-push"></div>
+    </section>
+
+    <section class="seccion-ajustes">
       <button class="boton peligro" id="salir">Cerrar sesión</button>
     </section>`;
 
@@ -487,6 +527,7 @@ async function vistaAjustes(el = $('#vista')) {
     } catch (er) { toast(er.message); }
   };
   $('#salir').onclick = async () => { await datos.salir(); location.reload(); };
+  pintarPush();
   el.onclick = (ev) => {
     const b = ev.target.closest('button');
     if (!b) return;
@@ -574,3 +615,49 @@ function editarHorario(p) {
 }
 
 iniciar();
+
+// ---------------------------------------------------------------- notificaciones push
+const b64aUint8 = (b64) => {
+  const s = (b64 + '='.repeat((4 - (b64.length % 4)) % 4)).replace(/-/g, '+').replace(/_/g, '/');
+  return Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+};
+const esIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
+const instalada = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+
+async function pintarPush() {
+  const el = $('#estado-push');
+  if (!el) return;
+  if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+    el.innerHTML = esIOS() && !instalada()
+      ? '<div class="aviso">En iPhone primero instalá el panel: tocá <b>Compartir → Agregar a pantalla de inicio</b>, abrilo desde ese ícono y volvé a esta pantalla.</div>'
+      : '<div class="aviso">Este navegador no permite notificaciones. Probá desde Chrome en el celular.</div>';
+    return;
+  }
+  const reg = await navigator.serviceWorker.register('sw.js');
+  const sub = await reg.pushManager.getSubscription();
+  if (Notification.permission === 'denied') {
+    el.innerHTML = '<div class="aviso">Las notificaciones están bloqueadas para esta página. Habilitalas desde los ajustes del navegador (candado al lado de la dirección → Notificaciones).</div>';
+    return;
+  }
+  if (sub && Notification.permission === 'granted') {
+    el.innerHTML = '<div class="ok">✅ Notificaciones activadas en este celular.</div><button class="boton claro chico" id="push-off">Desactivar en este celular</button>';
+    $('#push-off').onclick = async () => { await datos.borrarSuscripcion(sub.endpoint).catch(() => {}); await sub.unsubscribe(); toast('Notificaciones desactivadas'); pintarPush(); };
+    return;
+  }
+  el.innerHTML = '<button class="boton" id="push-on">🔔 Activar notificaciones en este celular</button>';
+  $('#push-on').onclick = async () => {
+    try {
+      const permiso = await Notification.requestPermission();
+      if (permiso !== 'granted') { toast('No diste permiso para notificaciones'); return pintarPush(); }
+      const publica = await datos.clavePush();
+      const nueva = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64aUint8(publica) });
+      const j = nueva.toJSON();
+      await datos.guardarSuscripcion({ endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth });
+      toast('¡Listo! Te vamos a avisar acá');
+      pintarPush();
+    } catch (e) { toast(e.message || 'No se pudo activar'); }
+  };
+}
+
+// Registrar el service worker apenas se abre el panel (para que las notificaciones abran la app)
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
